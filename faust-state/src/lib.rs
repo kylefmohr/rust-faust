@@ -1,3 +1,4 @@
+use default_boxed::DefaultBoxed;
 use faust_types::*;
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::{
@@ -8,7 +9,10 @@ use std::{
 const DEFAULT_NAME: &str = "rust_faust";
 
 #[derive(Debug)]
-pub struct DspHandle<T> {
+pub struct DspHandle<T>
+where
+    T: DefaultBoxed,
+{
     dsp: Box<T>,
     dsp_tx: Producer<State>,
     dsp_rx: Consumer<State>,
@@ -17,10 +21,10 @@ pub struct DspHandle<T> {
 
 impl<T> DspHandle<T>
 where
-    T: FaustDsp<T = f32> + 'static,
+    T: FaustDsp<T = f32> + 'static + DefaultBoxed,
 {
     pub fn new() -> (Self, StateHandle) {
-        let mut dsp = Box::new(T::new());
+        let mut dsp = T::default_boxed();
         let meta = MetaBuilder::from_dsp(dsp.as_mut());
         let params = ParamsBuilder::from_dsp(dsp.as_mut());
         let name = meta
@@ -79,11 +83,11 @@ where
         // by flushing denormals/underflow to zero.
         // See: https://gist.github.com/GabrielMajeri/545042ee4f956d5b2141105eb6a505a9
         // See: https://github.com/grame-cncm/faust/blob/master-dev/architecture/faust/dsp/dsp.h#L236
-        let mask = if cfg!(any(target_arch="arm", target_arch="aarch64")) {
+        let mask = if cfg!(any(target_arch = "arm", target_arch = "aarch64")) {
             1 << 24 // FZ
-        } else if cfg!(any(target_feature="sse2")) {
-            0x8040 
-        } else if cfg!(any(target_feature="sse")) {
+        } else if cfg!(any(target_feature = "sse2")) {
+            0x8040
+        } else if cfg!(any(target_feature = "sse")) {
             0x8000
         } else {
             0x0000
@@ -112,12 +116,12 @@ where
     // Needed for flushing denormals
     fn get_fp_status_register(&self) -> Option<u32> {
         unsafe {
-            if cfg!(any(target_arch="arm", target_arch="aarch64")) {
+            if cfg!(any(target_arch = "arm", target_arch = "aarch64")) {
                 use std::arch::asm;
                 let fspr: u32;
                 asm!("msr fpcr, {0:r}", out(reg) fspr);
                 Some(fspr)
-            } else if cfg!(target_feature="sse") {
+            } else if cfg!(target_feature = "sse") {
                 use std::arch::x86_64::*;
                 Some(_mm_getcsr())
             } else {
@@ -130,10 +134,10 @@ where
     // Needed for flushing denormals
     fn set_fp_status_register(&self, fspr: u32) {
         unsafe {
-            if cfg!(any(target_arch="arm", target_arch="aarch64")) {
+            if cfg!(any(target_arch = "arm", target_arch = "aarch64")) {
                 use std::arch::asm;
                 asm!("mrs {0:r}, fpcr", in(reg) fspr);
-            } else if cfg!(target_feature="sse") {
+            } else if cfg!(target_feature = "sse") {
                 use std::arch::x86_64::*;
                 _mm_setcsr(fspr)
             }
