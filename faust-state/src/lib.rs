@@ -1,4 +1,3 @@
-use default_boxed::DefaultBoxed;
 use faust_types::*;
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::{
@@ -9,10 +8,7 @@ use std::{
 const DEFAULT_NAME: &str = "rust_faust";
 
 #[derive(Debug)]
-pub struct DspHandle<T>
-where
-    T: DefaultBoxed,
-{
+pub struct DspHandle<T> {
     dsp: Box<T>,
     dsp_tx: Producer<State>,
     dsp_rx: Consumer<State>,
@@ -21,7 +17,7 @@ where
 
 impl<T> DspHandle<T>
 where
-    T: FaustDsp<T = f32> + 'static + DefaultBoxed,
+    T: FaustDsp<T = f32> + 'static,
 {
     pub fn new() -> (Self, StateHandle) {
         let dsp = Box::new(T::new());
