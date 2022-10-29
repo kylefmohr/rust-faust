@@ -24,7 +24,11 @@ where
     T: FaustDsp<T = f32> + 'static + DefaultBoxed,
 {
     pub fn new() -> (Self, StateHandle) {
-        let mut dsp = T::default_boxed();
+        let dsp = Box::new(T::new());
+        Self::from_dsp(dsp)
+    }
+
+    pub fn from_dsp(mut dsp: Box<T>) -> (Self, StateHandle) {
         let meta = MetaBuilder::from_dsp(dsp.as_mut());
         let params = ParamsBuilder::from_dsp(dsp.as_mut());
         let name = meta
