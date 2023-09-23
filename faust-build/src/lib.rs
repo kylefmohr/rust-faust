@@ -30,6 +30,7 @@ pub fn build_dsp_to_destination(dsp_file: &str, dest_path: &str) {
         .arg(template_file.path())
         .arg("-lang")
         .arg("rust")
+        .arg("-vec")
         .arg(&dsp_file)
         .arg("-o")
         .arg(target_file.path())
