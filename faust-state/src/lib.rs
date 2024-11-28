@@ -120,7 +120,7 @@ where
         unsafe {
             use std::arch::asm;
             let fspr: u32;
-            asm!("msr fpcr, {0:r}", out(reg) fspr);
+            asm!("mrs {0:w}, fpcr", out(reg) fspr);  // Changed :r to :w for 32-bit register
             return Some(fspr);
         }
         #[cfg(target_feature = "sse")]
@@ -138,7 +138,7 @@ where
         #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
         unsafe {
             use std::arch::asm;
-            asm!("mrs {0:r}, fpcr", in(reg) fspr);
+            asm!("msr fpcr, {0:w}", in(reg) fspr);  // Changed :r to :w and fixed instruction order
             return;
         }
         #[cfg(target_feature = "sse")]
