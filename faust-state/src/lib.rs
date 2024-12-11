@@ -116,11 +116,16 @@ where
     // Needed for flushing denormals
     #[allow(unreachable_code)]
     fn get_fp_status_register(&self) -> Option<u32> {
-        #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
+        #[cfg(target_arch = "aarch64")]
         unsafe {
-            use std::arch::asm;
             let fspr: u32;
-            asm!("mrs {0:w}, fpcr", out(reg) fspr);  // Changed :r to :w for 32-bit register
+            core::arch::asm!("mrs {0}, fpcr", out(reg) fspr); // Correct order: Read *from* fpcr
+            return Some(fspr);
+        }
+        #[cfg(target_arch = "arm")]
+        unsafe {
+            let fspr: u32;
+            core::arch::asm!("vmrs {0}, fpscr", out(reg) fspr); // Correct order: Read *from* fpscr
             return Some(fspr);
         }
         #[cfg(target_feature = "sse")]
@@ -135,10 +140,14 @@ where
     // Needed for flushing denormals
     #[allow(unreachable_code)]
     fn set_fp_status_register(&self, fspr: u32) {
-        #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
+        #[cfg(target_arch = "aarch64")]
         unsafe {
-            use std::arch::asm;
-            asm!("msr fpcr, {0:w}", in(reg) fspr);  // Changed :r to :w and fixed instruction order
+            core::arch::asm!("msr fpcr, {0}", in(reg) fspr); // Correct order: Write *to* fpcr
+            return;
+        }
+         #[cfg(target_arch = "arm")]
+        unsafe {
+            core::arch::asm!("vmsr fpscr, {0}", in(reg) fspr); // Correct order: Write *to* fpscr
             return;
         }
         #[cfg(target_feature = "sse")]
